@@ -1,0 +1,41 @@
+name: Publish Android release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "bananacomic-*.apk"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish latest tagged APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(git tag --sort=-v:refname | head -n 1)"
+          version="${tag#v}"
+          apk="bananacomic-${version}.apk"
+          test -n "$tag"
+          test -f "$apk"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber
+          else
+            gh release create "$tag" "$apk" \
+              --title "香蕉漫画 ${version}" \
+              --notes "新增可取消的应用内更新流程；大版本自动提醒，修复版本可在“我的”中手动检查；安装包改由 GitHub 托管下载。"
+          fi
