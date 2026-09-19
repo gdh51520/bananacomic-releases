@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "bananacomic-*.apk"
+      - ".github/release-notes/**"
       - ".github/workflows/release.yml"
   workflow_dispatch:
 
@@ -29,13 +30,21 @@ jobs:
           tag="$(git tag --sort=-v:refname | head -n 1)"
           version="${tag#v}"
           apk="bananacomic-${version}.apk"
+          notes=".github/release-notes/${version}.md"
           test -n "$tag"
           test -f "$apk"
 
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$apk" --clobber
+            if [[ -f "$notes" ]]; then
+              gh release edit "$tag" --notes-file "$notes"
+            fi
+          elif [[ -f "$notes" ]]; then
+            gh release create "$tag" "$apk" \
+              --title "香蕉漫画 ${version}" \
+              --notes-file "$notes"
           else
             gh release create "$tag" "$apk" \
               --title "香蕉漫画 ${version}" \
-              --notes "新增可取消的应用内更新流程；大版本自动提醒，修复版本可在“我的”中手动检查；安装包改由 GitHub 托管下载。"
+              --generate-notes
           fi
