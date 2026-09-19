@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths:
       - "bananacomic-*.apk"
       - ".github/release-notes/**"
@@ -28,6 +30,9 @@ jobs:
         run: |
           set -euo pipefail
           tag="$(git tag --sort=-v:refname | head -n 1)"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"
+          fi
           version="${tag#v}"
           apk="bananacomic-${version}.apk"
           notes=".github/release-notes/${version}.md"
